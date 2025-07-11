@@ -1,13 +1,16 @@
 import ccxt
 import pandas as pd
 from database import get_db, OHLCV, Trade, Price
-
-from config import EXCHANGE, TIMEFRAME, SYMBOL
+import time
+from config import EXCHANGE, TIMEFRAME, SYMBOL, GAP
 from datetime import datetime, timedelta, timezone
-def fetch_ohlcv():
+def fetch_ohlcv(upd: bool):
     db = next(get_db())
-    time_7_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    since = int(time_7_days_ago.timestamp() * 1000)
+    if (upd == False): 
+        period = datetime.now(timezone.utc) - timedelta(days=7)
+    else: 
+        period = datetime.now(timezone.utc) - timedelta(minutes=GAP)        
+    since = int(period.timestamp() * 1000)
     until = int(datetime.now(timezone.utc).timestamp()) * 1000
     try: 
         ohlcv = EXCHANGE.fetch_ohlcv(SYMBOL, timeframe=TIMEFRAME, since = since, params={'until': until})
@@ -30,10 +33,14 @@ def fetch_ohlcv():
     finally:
         pass
 
-def fetch_trades():
+def fetch_trades(upd: bool):
     db = next(get_db())
     try:
-        since = int((datetime.now(timezone.utc) - timedelta(hours = 1)).timestamp()) * 1000
+        if (upd == False): 
+            period = datetime.now(timezone.utc) - timedelta(hours=1)
+        else: 
+            period = datetime.now(timezone.utc) - timedelta(minutes=GAP)        
+        since = int(period.timestamp() * 1000)
         until = int(datetime.now(timezone.utc).timestamp()) * 1000
         trades = EXCHANGE.fetch_trades(SYMBOL, since = since, params={'until': until})
         
@@ -55,10 +62,13 @@ def fetch_trades():
         pass
 
 
-def fetch_price():
+def fetch_price(upd: bool):
     db = next(get_db())
-    time_7_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    since = int(time_7_days_ago.timestamp() * 1000)
+    if (upd == False): 
+        period = datetime.now(timezone.utc) - timedelta(days=7)
+    else: 
+        period = datetime.now(timezone.utc) - timedelta(minutes=GAP)        
+    since = int(period.timestamp() * 1000)
     until = int(datetime.now(timezone.utc).timestamp()) * 1000
     try: 
         ohlcv = EXCHANGE.fetch_ohlcv(SYMBOL, timeframe=TIMEFRAME, since = since, params={'until': until})
@@ -81,6 +91,13 @@ def fetch_price():
 
 
 
-fetch_ohlcv()
-fetch_trades()
-fetch_price()
+if __name__ == "__main__":
+    fetch_ohlcv(0)
+    fetch_trades(0)
+    fetch_price(0)
+    while True:
+        fetch_ohlcv(1)
+        fetch_trades(1)
+        fetch_price(1)
+        print(f"Dữ liệu cập nhất lúc {datetime.now(timezone.utc)}")
+        time.sleep(GAP * 60)
